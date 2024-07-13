@@ -14,7 +14,7 @@ fn less_than_4(s: &str) -> Result<usize, String> {
 #[command(version, about, long_about = None)]
 struct Cli {
     #[arg(short, long, default_value_t = 60)]
-    size: u32,
+    size: i32,
     #[arg(long, default_value_t = 35)]
     init_lives: u32,
     #[arg(long, default_value_t = 2, value_parser=less_than_4)]
@@ -33,6 +33,7 @@ fn main() {
     let mut runs = 1;
     let mut generation = 0;
     let mut dead_generations = 0;
+    let max_size = cli.size * cli.size;
     let mut grid = Grid::new(cli.size);
     grid.seed(cli.init_lives, cli.init_neighbors);
     grid.print();
@@ -49,7 +50,7 @@ fn main() {
 
         println!("Runs: {runs}");
         println!("Generation: {generation}");
-        println!("Total population: {population}");
+        println!("Total population: {population}/{max_size}");
 
         // Increment dead generations, reset if past threshold
         if population == 0 {
@@ -120,11 +121,11 @@ impl Point {
 
 struct Grid {
     live_points: HashMap<Point, bool>,
-    size: u32,
+    size: i32,
 }
 
 impl Grid {
-    pub fn new(size: u32) -> Self {
+    pub fn new(size: i32) -> Self {
         Self {
             live_points: HashMap::new(),
             size,
@@ -158,11 +159,11 @@ impl Grid {
             };
             let neighbours = point.get_neighbors(init_neighbors);
 
-            if !self.live_points.contains_key(&point) {
+            if self.is_printable(&point) && !self.live_points.contains_key(&point) {
                 self.live_points.insert(point, true);
             }
             for neighbor in neighbours {
-                if !self.live_points.contains_key(&neighbor) {
+                if self.is_printable(&neighbor) && !self.live_points.contains_key(&neighbor) {
                     self.live_points.insert(neighbor, true);
                 }
             }
@@ -187,7 +188,8 @@ impl Grid {
             if *live && (population == 2 || population == 3) {
                 new_live_points.insert(p.clone(), true);
                 for neighbor in &p.get_neighbors(8) {
-                    if !new_live_points.contains_key(neighbor) {
+                    // Only add new neighbors if within printable size
+                    if self.is_printable(&neighbor) && !new_live_points.contains_key(neighbor) {
                         new_live_points.insert(neighbor.clone(), false);
                     }
                 }
@@ -196,13 +198,18 @@ impl Grid {
             if !live && population == 3 {
                 new_live_points.insert(p.clone(), true);
                 for neighbor in &p.get_neighbors(8) {
-                    if !new_live_points.contains_key(neighbor) {
+                    // Only add new neighbors if within printable size
+                    if self.is_printable(&neighbor) && !new_live_points.contains_key(neighbor) {
                         new_live_points.insert(neighbor.clone(), false);
                     }
                 }
             }
         }
         self.live_points = new_live_points
+    }
+
+    fn is_printable(&self, point: &Point) -> bool {
+        point.x < self.size && point.x >= 0 && point.y < self.size && point.y >= 0
     }
 
     pub fn num_live(&self) -> i32 {
