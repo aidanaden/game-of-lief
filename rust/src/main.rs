@@ -9,7 +9,7 @@ fn less_than_4(s: &str) -> Result<usize, String> {
     number_range(s, 0, 4)
 }
 
-/// Simple program to greet a person
+/// Game of life simulation program
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Cli {
@@ -27,7 +27,6 @@ struct Cli {
     refresh_rate: u64,
 }
 
-// Usage: gof <num. of generations>
 fn main() {
     let cli = Cli::parse();
     let mut runs = 1;
