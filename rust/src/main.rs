@@ -21,9 +21,9 @@ struct Cli {
     init_neighbors: usize,
     #[arg(short, long, default_value_t = 150)]
     generations_till_reset: u32,
-    #[arg(short, long, default_value_t = 25)]
+    #[arg(short, long, default_value_t = 10)]
     max_dead_generations: u32,
-    #[arg(short, long, default_value_t = 150)]
+    #[arg(short, long, default_value_t = 125)]
     refresh_rate: u64,
 }
 
@@ -31,6 +31,7 @@ fn main() {
     let cli = Cli::parse();
     let mut runs = 1;
     let mut generation = 0;
+    let mut prev_population = 0;
     let mut dead_generations = 0;
     let max_size = cli.size * cli.size;
     let mut grid = Grid::new(cli.size);
@@ -39,9 +40,10 @@ fn main() {
 
     loop {
         generation += 1;
-        std::process::Command::new("Clear")
-            .status()
-            .expect("clear screen");
+
+        // bring cursor to "home" location, in just about any currently-used
+        // terminal emulation mode
+        print!("\x1B[2J\x1B[H");
         grid.next();
         grid.print();
 
@@ -52,7 +54,7 @@ fn main() {
         println!("Total population: {population}/{max_size}");
 
         // Increment dead generations, reset if past threshold
-        if population == 0 {
+        if population == 0 || prev_population == population {
             if dead_generations > cli.max_dead_generations {
                 runs += 1;
                 generation = 0;
@@ -68,6 +70,8 @@ fn main() {
             dead_generations = 0;
             grid.seed(cli.init_lives, cli.init_neighbors);
         }
+
+        prev_population = population;
 
         let millis = Duration::from_millis(cli.refresh_rate);
         std::thread::sleep(millis);
